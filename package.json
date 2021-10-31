@@ -31,7 +31,7 @@
     "singleQuote": true,
     "trailingComma": "es5"
   },
-  "name": "@diepmyduong/throttle-batch",
+  "name": "throttle-batch-size",
   "author": "diepmyduong@outlook.com.vn",
   "module": "dist/throttle-batch.esm.js",
   "size-limit": [
