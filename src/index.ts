@@ -132,6 +132,13 @@ export class BatchAsync<T> extends TypedEmitter<BatchAsyncEvent<T>> {
 
   complete() {
     this.completed = true;
+    if (
+      this.stack.length == 0 &&
+      this.batch.length == 0 &&
+      this.processing == false
+    ) {
+      this.emit('completed');
+    }
   }
 
   feed(item: T) {
