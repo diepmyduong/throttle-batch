@@ -119,9 +119,17 @@ export class BatchAsync<T> extends TypedEmitter<BatchAsyncEvent<T>> {
         this.processing = false;
         if (this.stack.length > 0) {
           this.emit('batch', this.stack.shift() as T[]);
-        } else {
-          if (this.completed) this.emit('completed');
         }
+        // else {
+        //   if (this.completed) {
+        //     if (this.batch.length > 0) {
+        //       this.batch = [];
+        //       await batchFn(this.batch);
+        //     }
+        //     console.log('emit completed');
+        //     this.emit('completed');
+        //   }
+        // }
       }
     });
 
