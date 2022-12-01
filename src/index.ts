@@ -83,40 +83,55 @@ interface BatchAsyncEvent<T> {
   error: (error: any) => void;
 }
 
+interface BatchAsyncOptions {
+  batchSize?: number;
+  debound?: number;
+  parallel?: number;
+}
+
 export class BatchAsync<T> extends TypedEmitter<BatchAsyncEvent<T>> {
   stack: T[][] = [];
   batch: T[] = [];
-  processing = false;
+  processing = 0;
   completed = false;
 
   private timeout: any;
 
   constructor(
     batchFn: (items: T[]) => Promise<any>,
-    batchSize = 1000,
-    private debound = 500
+    private options: BatchAsyncOptions = {}
   ) {
     super();
+    this.options = {
+      batchSize: options.batchSize || 1000,
+      debound: options.debound || 300,
+      parallel: options.parallel || 1,
+    };
+    // parallet require more than 1
+    if (this.options.parallel! < 1) {
+      this.options.parallel = 1;
+    }
+
     this.on('feed', data => {
       this.touch();
       this.batch.push(data);
-      if (this.batch.length == batchSize) {
+      if (this.batch.length == this.options.batchSize) {
         this.emit('batch', this.batch);
         this.batch = [];
       }
     });
     this.on('batch', async (items: any[]) => {
-      if (this.processing) {
+      if (this.processing >= this.options.parallel!) {
         this.stack.push(items);
         return;
       }
-      this.processing = true;
+      this.processing++;
       try {
         await batchFn(items);
       } catch (err) {
         this.emit('error', err);
       } finally {
-        this.processing = false;
+        this.processing--;
         if (this.stack.length > 0) {
           this.emit('batch', this.stack.shift() as T[]);
         }
@@ -143,7 +158,7 @@ export class BatchAsync<T> extends TypedEmitter<BatchAsyncEvent<T>> {
     if (
       this.stack.length == 0 &&
       this.batch.length == 0 &&
-      this.processing == false
+      this.processing == 0
     ) {
       this.emit('completed');
     }
@@ -156,19 +171,20 @@ export class BatchAsync<T> extends TypedEmitter<BatchAsyncEvent<T>> {
   private touch() {
     if (this.timeout) clearTimeout(this.timeout);
     this.timeout = setTimeout(() => {
-      if (this.processing == false && this.batch.length > 0) {
+      if (this.processing < this.options.parallel! && this.batch.length > 0) {
         this.emit('batch', this.batch);
         this.batch = [];
       }
       if (
-        this.processing == false &&
+        this.processing == 0 &&
         this.batch.length == 0 &&
-        this.completed
+        this.completed &&
+        this.stack.length == 0
       ) {
         this.emit('completed');
       } else {
         this.touch();
       }
-    }, this.debound);
+    }, this.options.debound);
   }
 }

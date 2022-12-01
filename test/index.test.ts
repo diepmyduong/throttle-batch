@@ -27,10 +27,16 @@ const sleep = (ms: number) =>
 // }, 10000);
 
 test('Bathc Async', async () => {
-  const batchAsync = new BatchAsync(async (items: string[]) => {
-    console.log(items);
-    await sleep(0.1);
-  }, 20);
+  const batchAsync = new BatchAsync(
+    async (items: string[]) => {
+      console.log(items, new Date());
+      await sleep(1);
+    },
+    {
+      batchSize: 5,
+      parallel: 20,
+    }
+  );
 
   for (var i = 0; i < 500; i++) {
     batchAsync.feed(i.toString());
@@ -49,5 +55,11 @@ test('Bathc Async', async () => {
   batchAsync.on('completed', () => {
     console.log('complete');
   });
+
   await sleep(20);
+  await new Promise(resolve => {
+    batchAsync.on('completed', () => {
+      resolve(true);
+    });
+  });
 }, 30000);
